@@ -132,9 +132,7 @@ def notify_google_chat(
             ""
         )
         title_ja = entry.get("title_ja") or entry["title"]
-        summary = entry.get("summary", "")
-        display = f"{title_ja}：{summary}" if summary else title_ja
-        lines.append(f"【{source}】{display}")
+        lines.append(f"【{source}】{title_ja}")
 
     lines.append(f"\n詳細: {report_url}")
 
