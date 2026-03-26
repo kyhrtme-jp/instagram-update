@@ -69,6 +69,25 @@ def summarize_in_japanese(text: str, title: str) -> str:
         return ""
 
 
+def translate_title(title: str) -> str:
+    """Claude APIで記事タイトルを日本語に翻訳する"""
+    try:
+        client = anthropic.Anthropic()
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=100,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"以下の英語タイトルを自然な日本語に翻訳してください。翻訳結果のみ返してください。\n{title}"
+                }
+            ]
+        )
+        return response.content[0].text.strip()
+    except Exception:
+        return title
+
+
 def build_markdown(entries_by_source: dict, date_str: str) -> Optional[str]:
     """収集結果からMarkdownレポートを生成する"""
     all_empty = all(len(entries) == 0 for entries in entries_by_source.values())
@@ -82,8 +101,9 @@ def build_markdown(entries_by_source: dict, date_str: str) -> Optional[str]:
             continue
         lines.append(f"## {source_name}\n")
         for entry in entries:
-            lines.append(f"### {entry['title']}")
-            lines.append(f"- 元記事: [{entry['url']}]({entry['url']})")
+            title_ja = entry.get("title_ja") or entry["title"]
+            lines.append(f"### {title_ja}")
+            lines.append(f"- 元記事: [{entry['title']}]({entry['url']})")
             lines.append(f"- 公開日: {entry['published']}")
             if entry.get("summary"):
                 lines.append(f"- 要約: {entry['summary']}")
@@ -109,8 +129,9 @@ def notify_google_chat(
             (name for name, entries in entries_by_source.items() if entry in entries),
             ""
         )
+        title_ja = entry.get("title_ja") or entry["title"]
         summary = entry.get("summary", "")
-        display = summary if summary else entry["title"]
+        display = f"{title_ja}：{summary}" if summary else title_ja
         lines.append(f"【{source}】{display}")
 
     lines.append(f"\n詳細: {report_url}")
@@ -129,6 +150,7 @@ def main(updates_dir: str = "updates") -> None:
         print(f"Fetching {source['name']}...")
         entries = fetch_recent_entries(source["url"])
         for entry in entries:
+            entry["title_ja"] = translate_title(entry.get("title", ""))
             entry["summary"] = summarize_in_japanese(entry.get("title", ""), entry.get("title", ""))
         entries_by_source[source["name"]] = entries
         print(f"  {len(entries)} entries found")
