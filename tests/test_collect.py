@@ -77,3 +77,33 @@ def test_summarize_in_japanese_handles_error():
         result = summarize_in_japanese("Some text", "Title")
 
     assert result == ""
+
+def test_build_markdown_contains_entries():
+    """Markdownレポートが記事タイトルとURLを含むこと"""
+    from scripts.collect import build_markdown
+
+    entries_by_source = {
+        "Meta公式ブログ": [
+            {
+                "title": "Instagram Feed Update",
+                "url": "https://about.fb.com/article",
+                "published": "2026-03-24",
+                "summary": "Instagramがフィードを更新しました。"
+            }
+        ]
+    }
+    date_str = "2026-03-24"
+    result = build_markdown(entries_by_source, date_str)
+
+    assert "# Instagram アルゴリズム情報" in result
+    assert "2026-03-24" in result
+    assert "Instagram Feed Update" in result
+    assert "https://about.fb.com/article" in result
+    assert "Instagramがフィードを更新しました。" in result
+
+def test_build_markdown_empty_returns_none():
+    """全ソースが空の場合Noneを返すこと"""
+    from scripts.collect import build_markdown
+
+    result = build_markdown({}, "2026-03-24")
+    assert result is None

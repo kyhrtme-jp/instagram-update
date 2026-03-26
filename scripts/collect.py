@@ -1,6 +1,7 @@
 import feedparser
 import anthropic
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 SOURCES = [
     {
@@ -63,3 +64,26 @@ def summarize_in_japanese(text: str, title: str) -> str:
         return response.content[0].text
     except Exception:
         return ""
+
+
+def build_markdown(entries_by_source: dict, date_str: str) -> Optional[str]:
+    """収集結果からMarkdownレポートを生成する"""
+    all_empty = all(len(entries) == 0 for entries in entries_by_source.values())
+    if all_empty:
+        return None
+
+    lines = [f"# Instagram アルゴリズム情報 - {date_str}\n"]
+
+    for source_name, entries in entries_by_source.items():
+        if not entries:
+            continue
+        lines.append(f"## {source_name}\n")
+        for entry in entries:
+            lines.append(f"### {entry['title']}")
+            lines.append(f"- 元記事: [{entry['url']}]({entry['url']})")
+            lines.append(f"- 公開日: {entry['published']}")
+            if entry.get("summary"):
+                lines.append(f"- 要約: {entry['summary']}")
+            lines.append("")
+
+    return "\n".join(lines)
