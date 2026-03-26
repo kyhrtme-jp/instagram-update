@@ -52,3 +52,28 @@ def test_fetch_recent_entries_handles_error():
         entries = fetch_recent_entries("https://example.com/feed", days=7)
 
     assert entries == []
+
+def test_summarize_in_japanese_returns_string():
+    """Claude APIを呼んで日本語要約文字列を返すこと"""
+    from scripts.collect import summarize_in_japanese
+
+    mock_response = MagicMock()
+    mock_response.content = [MagicMock(text="Instagramがアルゴリズムを更新しました。")]
+
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_response
+
+    with patch("scripts.collect.anthropic.Anthropic", return_value=mock_client):
+        result = summarize_in_japanese("Instagram updated its algorithm.", "Test Article")
+
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+def test_summarize_in_japanese_handles_error():
+    """Claude API失敗時は空文字列を返すこと"""
+    from scripts.collect import summarize_in_japanese
+
+    with patch("scripts.collect.anthropic.Anthropic", side_effect=Exception("API error")):
+        result = summarize_in_japanese("Some text", "Title")
+
+    assert result == ""
