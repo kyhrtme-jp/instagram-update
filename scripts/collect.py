@@ -146,6 +146,8 @@ def notify_google_chat(
 def main(updates_dir: str = "updates") -> None:
     """メイン実行関数"""
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    print(f"ANTHROPIC_API_KEY設定: {'あり' if api_key else 'なし（未設定）'}")
     webhook_url = os.environ.get("GOOGLE_CHAT_WEBHOOK_URL", "")
 
     entries_by_source = {}
