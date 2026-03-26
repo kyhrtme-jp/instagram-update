@@ -33,10 +33,12 @@ def fetch_recent_entries(feed_url: str, days: int = 7) -> list[dict]:
             try:
                 published = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
                 if published >= cutoff:
+                    description = getattr(entry, "summary", "") or getattr(entry, "description", "") or ""
                     entries.append({
                         "title": entry.title,
                         "url": entry.link,
                         "published": published.strftime("%Y-%m-%d"),
+                        "description": description,
                     })
             except (AttributeError, TypeError):
                 continue
@@ -151,7 +153,7 @@ def main(updates_dir: str = "updates") -> None:
         entries = fetch_recent_entries(source["url"])
         for entry in entries:
             entry["title_ja"] = translate_title(entry.get("title", ""))
-            entry["summary"] = summarize_in_japanese(entry.get("title", ""), entry.get("title", ""))
+            entry["summary"] = summarize_in_japanese(entry.get("description", ""), entry.get("title", ""))
         entries_by_source[source["name"]] = entries
         print(f"  {len(entries)} entries found")
 
