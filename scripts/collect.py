@@ -1,8 +1,10 @@
 import feedparser
 import anthropic
 import requests
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+from pathlib import Path
 
 SOURCES = [
     {
@@ -113,3 +115,38 @@ def notify_google_chat(
 
     payload = {"text": "\n".join(lines)}
     requests.post(webhook_url, json=payload, timeout=10)
+
+
+def main(updates_dir: str = "updates") -> None:
+    """メイン実行関数"""
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    webhook_url = os.environ.get("GOOGLE_CHAT_WEBHOOK_URL", "")
+
+    entries_by_source = {}
+    for source in SOURCES:
+        print(f"Fetching {source['name']}...")
+        entries = fetch_recent_entries(source["url"])
+        for entry in entries:
+            entry["summary"] = summarize_in_japanese(entry.get("title", ""), entry.get("title", ""))
+        entries_by_source[source["name"]] = entries
+        print(f"  {len(entries)} entries found")
+
+    markdown = build_markdown(entries_by_source, date_str)
+    if markdown is None:
+        print("No new entries this week. Skipping.")
+        return
+
+    output_path = Path(updates_dir) / f"{date_str}.md"
+    output_path.write_text(markdown, encoding="utf-8")
+    print(f"Saved: {output_path}")
+
+    if webhook_url:
+        report_url = (
+            f"https://github.com/kyhrtme-jp/instagram-update/blob/main/updates/{date_str}.md"
+        )
+        notify_google_chat(webhook_url, entries_by_source, date_str, report_url)
+        print("Notified Google Chat.")
+
+
+if __name__ == "__main__":
+    main()

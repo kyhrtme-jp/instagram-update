@@ -146,3 +146,25 @@ def test_notify_google_chat_skips_when_empty():
         )
 
     mock_post.assert_not_called()
+
+def test_main_creates_markdown_file(tmp_path):
+    """mainを実行するとupdates/にMarkdownが生成されること"""
+    from scripts.collect import main
+
+    mock_entries = [
+        {"title": "Test", "url": "https://example.com", "published": "2026-03-24"}
+    ]
+
+    with patch("scripts.collect.fetch_recent_entries", return_value=mock_entries), \
+         patch("scripts.collect.summarize_in_japanese", return_value="テスト要約"), \
+         patch("scripts.collect.notify_google_chat"), \
+         patch.dict("os.environ", {
+             "ANTHROPIC_API_KEY": "test-key",
+             "GOOGLE_CHAT_WEBHOOK_URL": "https://chat.googleapis.com/test"
+         }):
+        main(updates_dir=str(tmp_path))
+
+    files = list(tmp_path.glob("*.md"))
+    assert len(files) == 1
+    content = files[0].read_text()
+    assert "Instagram アルゴリズム情報" in content
