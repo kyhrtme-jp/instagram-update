@@ -85,8 +85,11 @@ def translate_title(title: str) -> str:
                 }
             ]
         )
-        return response.content[0].text.strip()
-    except Exception:
+        result = response.content[0].text.strip()
+        print(f"  翻訳: {title} → {result}")
+        return result
+    except Exception as e:
+        print(f"  翻訳失敗: {title} ({e})")
         return title
 
 
