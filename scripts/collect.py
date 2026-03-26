@@ -1,5 +1,6 @@
 import feedparser
 import anthropic
+import requests
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -87,3 +88,28 @@ def build_markdown(entries_by_source: dict, date_str: str) -> Optional[str]:
             lines.append("")
 
     return "\n".join(lines)
+
+
+def notify_google_chat(
+    webhook_url: str,
+    entries_by_source: dict,
+    date_str: str,
+    report_url: str
+) -> None:
+    """Google Chat Webhookに週次サマリーを送信する"""
+    all_entries = [e for entries in entries_by_source.values() for e in entries]
+    if not all_entries:
+        return
+
+    lines = [f"📱 今週のInstagramアルゴリズム情報 ({date_str})\n"]
+    for entry in all_entries[:10]:
+        source = next(
+            (name for name, entries in entries_by_source.items() if entry in entries),
+            ""
+        )
+        lines.append(f"・{entry['title']}（{source}）")
+
+    lines.append(f"\n詳細: {report_url}")
+
+    payload = {"text": "\n".join(lines)}
+    requests.post(webhook_url, json=payload, timeout=10)

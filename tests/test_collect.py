@@ -107,3 +107,42 @@ def test_build_markdown_empty_returns_none():
 
     result = build_markdown({}, "2026-03-24")
     assert result is None
+
+def test_notify_google_chat_sends_request():
+    """Google Chat Webhookにリクエストを送ること"""
+    from scripts.collect import notify_google_chat
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+
+    entries_by_source = {
+        "Meta公式ブログ": [
+            {"title": "Test Article", "url": "https://example.com", "published": "2026-03-24", "summary": "テスト"}
+        ]
+    }
+
+    with patch("scripts.collect.requests.post", return_value=mock_response) as mock_post:
+        notify_google_chat(
+            webhook_url="https://chat.googleapis.com/webhook",
+            entries_by_source=entries_by_source,
+            date_str="2026-03-24",
+            report_url="https://github.com/kyhrtme-jp/instagram-update/blob/main/updates/2026-03-24.md"
+        )
+
+    mock_post.assert_called_once()
+    call_kwargs = mock_post.call_args
+    assert "https://chat.googleapis.com/webhook" in str(call_kwargs)
+
+def test_notify_google_chat_skips_when_empty():
+    """記事が0件のときはリクエストを送らないこと"""
+    from scripts.collect import notify_google_chat
+
+    with patch("scripts.collect.requests.post") as mock_post:
+        notify_google_chat(
+            webhook_url="https://chat.googleapis.com/webhook",
+            entries_by_source={},
+            date_str="2026-03-24",
+            report_url="https://github.com/..."
+        )
+
+    mock_post.assert_not_called()
